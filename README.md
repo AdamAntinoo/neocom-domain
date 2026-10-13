@@ -1,2 +1,10 @@
 # neocom-domain
-This is the repository where business domain definition will be located and used across the project.
+
+Node package of TypeScript classes for the NEOCOM business domain. Front and back depend on the published package.
+
+```bash
+npm install
+npm test
+```
+
+`GET /characters/93813310` is stubbed from `wiremock/` (Perico Tuerto). `Pilot.fromCharacter` builds the programme model from that ESI Character body. A `GameCredential` keeps at most 3 pilots.
