@@ -1,7 +1,7 @@
 {
   "name": "neocom-domain",
   "version": "0.0.0",
-  "description": "NEOCOM business-domain TypeScript classes",
+  "description": "neocomusiness-domain TypeScript classes",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,8 +15,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test test/*.test.mjs"
+    "clean": "rm -rf ./dist",
+    "build": "npm run clean & tsc",
+    "test": "jest",
+    "distribute": "npm run test && npm run build ",
+    "build2": "tsc -p tsconfig.json",
+    "test2": "npm run build2 && node --test test/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
