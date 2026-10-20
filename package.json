@@ -1,6 +1,6 @@
 {
   "name": "neocom-domain",
-  "version": "0.30.0",
+  "version": "0.29.2",
   "description": "neocomusiness-domain TypeScript classes",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,8 +18,13 @@
     "clean": "rm -rf ./dist",
     "build": "npm run clean & tsc -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.mjs",
-    "distribute": "npm run test && npm run build3 ",
-    "version:sync": "npm pkg set version=$(gitversion /nocache /showvariable SemVer)"
+    "distribute": "npm run test && npm run build",
+    "version:sync": "node scripts/version-from-npm.mjs",
+    "version:bump:patch": "npm version patch --no-git-tag-version",
+    "version:bump:minor": "npm version minor --no-git-tag-version",
+    "version:bump:major": "npm version major --no-git-tag-version",
+    "version:tag": "node scripts/version-tag-from-package.mjs",
+    "publish:lib": "npm run version:sync && npm run version:bump:minor && npm run distribute && npm publish && npm run version:sync && npm run version:tag"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
