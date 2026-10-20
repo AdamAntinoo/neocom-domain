@@ -1,6 +1,8 @@
-# Continuous deployment. Last published npm release is 0.29.2.
-# The version-source tag is v0.30.0; later versions count up from that tag.
-# On main, each commit increments the minor component.
+# HISTORICAL / unused for package version.
+# neocom-domain package.json is synced from the latest npm publish
+# (`npm run version:sync`). Git tags vX.Y.Z are created after publish to
+# follow npm — not the other way around. Do not restore GitVersion as the
+# source of truth for this library.
 assembly-informational-format: '{FullSemVer}'
 mode: ContinuousDeployment
 branches:
@@ -10,17 +12,6 @@ branches:
     increment: Minor
     prevent-increment-of-merged-branch-version: false
     track-merge-target: false
-  pull-request:
-    mode: ContinuousDelivery
-    tag: PullRequest
-    increment: Patch
-    prevent-increment-of-merged-branch-version: false
-    tag-number-pattern: '[/-](?<number>\d+)[-/]'
-    track-merge-target: false
-    regex: (pull|pull\-requests|pr|[0-9]+)[/-]
-    tracks-release-branches: false
-    is-release-branch: false
 ignore:
   sha: []
 merge-message-formats: {}
-assembly-file-versioning-format: '{Major}.{Minor}.{Patch}-{CommitsSinceVersionSource}'
