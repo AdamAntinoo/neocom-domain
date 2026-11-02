@@ -1,10 +1,10 @@
-import { NeoCom } from './core/NeoCom.js';
+import { Record } from '../interfaces/Record.interface.js';
 
 /**
- * Front application identity (name, version, copyright) for header rendering.
- * EPIC-004 ApplicationInfoV1 — published domain model.
+ * Application identity (name, version, copyright) for shared interchange.
+ * EPIC-004 ApplicationInfoV1 — published model (extends Record). Front renders via jsonClass.
  */
-export class ApplicationInfoV1 extends NeoCom {
+export class ApplicationInfoV1 extends Record {
   private name = '';
   private version = '';
   private copyright = '';

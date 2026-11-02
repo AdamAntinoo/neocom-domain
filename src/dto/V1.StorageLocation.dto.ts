@@ -3,6 +3,9 @@ import { MANDATORY_FIELD_MISSING } from "../exceptions/NeoComSharedErrorCatalog"
 import { Record } from "../interfaces/Record.interface"
 import { LocationLinkGenerator } from "../linkgenerators/LocationLink.generator"
 
+/**
+ * @deprecated Domain DTOs are not active interchange / port contracts (BACK-SVC-040…042). Prefer `src/domain` models. Kept as templates / for later removal.
+ */
 export class V1StorageLocationDto extends Record {
 	public override jsonClass: string = "StorageLocationDto"
 	public locationType: string = 'Hangar'

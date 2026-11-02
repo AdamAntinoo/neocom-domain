@@ -7,6 +7,9 @@ import { V1StackDto } from "./V1.Stack.dto"
  * This class requires a builder because there are dependencies on other classes. If not object do not get the correct structure.
  * But probably this is not required on the way we expect to convert DTO into entities at the frontend. Review.
  */
+/**
+ * @deprecated Domain DTOs are not active interchange / port contracts (BACK-SVC-040…042). Prefer `src/domain` models. Kept as templates / for later removal.
+ */
 export class V1MiningOperationDto extends Record {
 	public override jsonClass: string = "MiningOperationDto"
 	public id?: string
