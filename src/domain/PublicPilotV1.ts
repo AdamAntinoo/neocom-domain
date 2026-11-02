@@ -1,4 +1,4 @@
-import { NeoCom } from './core/NeoCom.js';
+import { Record } from '../interfaces/Record.interface.js';
 
 /** Named race / ancestry / bloodline summary (not raw ESI payloads). */
 export interface PilotNameSummary {
@@ -16,9 +16,9 @@ export const PILOT_FIXTURE_CHARACTER_ID = 93813310;
 
 /**
  * Public-only Pilot base (legacy / unauthenticated).
- * EPIC-004 PublicPilotV1 — published domain model. PilotV2 extends this.
+ * EPIC-004 PublicPilotV1 — published interchange model (extends Record). PilotV2 extends this.
  */
-export class PublicPilotV1 extends NeoCom {
+export class PublicPilotV1 extends Record {
   protected pilotId = 0;
   protected name = '';
   protected corporation: PublicCorporationSummary | undefined;

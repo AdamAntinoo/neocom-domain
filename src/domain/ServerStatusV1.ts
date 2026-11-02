@@ -1,10 +1,10 @@
-import { NeoCom } from './core/NeoCom.js';
+import { Record } from '../interfaces/Record.interface.js';
 
 /**
- * EVE Online / NeoCom server status for header rendering.
- * EPIC-004 ServerStatusV1 — published domain model.
+ * EVE Online server status for shared interchange.
+ * EPIC-004 ServerStatusV1 — published model (extends Record). Front renders via jsonClass.
  */
-export class ServerStatusV1 extends NeoCom {
+export class ServerStatusV1 extends Record {
   private server = '';
   private players = 0;
   private start_time = '';

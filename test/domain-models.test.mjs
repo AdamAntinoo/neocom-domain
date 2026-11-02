@@ -1,17 +1,34 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  Record,
   ApplicationInfoV1,
   ServerStatusV1,
   PublicPilotV1,
   PilotV2,
   BlueprintV1,
-  SpaceLocation,
+  SpaceLocationV1,
   PILOT_FIXTURE_CHARACTER_ID,
   LOCATION_FIXTURE,
 } from '../dist/index.js';
 
 describe('published domain models', () => {
+  it('interchange models extend Record, not a front NeoCom render base', () => {
+    const models = [
+      new ApplicationInfoV1({ name: 'n' }),
+      new ServerStatusV1({ server: 's' }),
+      new PublicPilotV1({ pilotId: 1 }),
+      new PilotV2({ pilotId: 1 }),
+      new BlueprintV1({}),
+      SpaceLocationV1.fixtureStation(),
+    ];
+    for (const model of models) {
+      assert.ok(model instanceof Record);
+      assert.equal(typeof model.collaborate2View, 'undefined');
+      assert.equal(typeof model.isExpanded, 'undefined');
+    }
+  });
+
   it('ApplicationInfoV1 exposes jsonClass and accessors', () => {
     const info = new ApplicationInfoV1({
       name: 'neocom-front',
@@ -70,10 +87,15 @@ describe('published domain models', () => {
       currentShipTypeName: 'Frigate',
     });
     assert.equal(pilot.getJsonClass(), 'PilotV2');
+    assert.notEqual(pilot.getJsonClass(), 'Pilot');
     assert.equal(pilot.getTotalSkillpoints(), 1_000_000);
     assert.equal(pilot.getWalletBalance(), 42.5);
     assert.equal(pilot.getCurrentShipName(), 'Probe');
     assert.equal(pilot.getPilotIcon().includes('93813310'), true);
+  });
+
+  it('SpaceLocationV1 jsonClass matches programme type name (DOM-JSONCLASS-003)', () => {
+    assert.equal(SpaceLocationV1.fixtureStation().getJsonClass(), 'SpaceLocationV1');
   });
 
   it('BlueprintV1 exposes ESI base fields without BOM', () => {
@@ -95,8 +117,17 @@ describe('published domain models', () => {
     assert.equal(bp.getOutputTypeIconURL().includes('/types/582/icon'), true);
   });
 
-  it('SpaceLocation station carries ancestor chain', () => {
-    const station = SpaceLocation.fixtureStation();
+  it('BlueprintV1 clamps materialEfficiency 0–10 and timeEfficiency 0–20 (DOM-BP-002)', () => {
+    const bp = new BlueprintV1({
+      materialEfficiency: 99,
+      timeEfficiency: -5,
+    });
+    assert.equal(bp.getMaterialEfficiency(), 10);
+    assert.equal(bp.getTimeEfficiency(), 0);
+  });
+
+  it('SpaceLocationV1 station carries ancestor chain', () => {
+    const station = SpaceLocationV1.fixtureStation();
     assert.equal(station.getLocationType(), 'STATION');
     assert.equal(station.getLocationId(), LOCATION_FIXTURE.stationId);
     assert.equal(station.regionId, LOCATION_FIXTURE.regionId);
@@ -105,8 +136,8 @@ describe('published domain models', () => {
     assert.equal(station.securityClass, LOCATION_FIXTURE.securityClass);
   });
 
-  it('SpaceLocation region locationId equals regionId', () => {
-    const region = SpaceLocation.region(LOCATION_FIXTURE.regionId, LOCATION_FIXTURE.regionName);
+  it('SpaceLocationV1 region locationId equals regionId', () => {
+    const region = SpaceLocationV1.region(LOCATION_FIXTURE.regionId, LOCATION_FIXTURE.regionName);
     assert.equal(region.getLocationType(), 'REGION');
     assert.equal(region.getLocationId(), region.regionId);
   });

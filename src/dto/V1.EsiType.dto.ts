@@ -1,5 +1,8 @@
 import { Record } from "../interfaces/Record.interface"
 
+/**
+ * @deprecated Domain DTOs are not active interchange / port contracts (BACK-SVC-040…042). Prefer `src/domain` models. Kept as templates / for later removal.
+ */
 export class V1EsiTypeDto extends Record {
     public override jsonClass: string = 'EsiTypeDto'
     public typeId?: number

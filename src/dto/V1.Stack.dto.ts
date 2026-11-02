@@ -2,6 +2,9 @@ import { NeoComError } from "../exceptions/NeoComError"
 import { MANDATORY_FIELD_MISSING } from "../exceptions/NeoComSharedErrorCatalog"
 import { Record } from "../interfaces/Record.interface"
 
+/**
+ * @deprecated Domain DTOs are not active interchange / port contracts (BACK-SVC-040…042). Prefer `src/domain` models. Kept as templates / for later removal.
+ */
 export class V1StackDto extends Record {
     public override jsonClass: string = 'StackDto'
     public quantity?: number
