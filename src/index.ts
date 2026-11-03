@@ -25,4 +25,24 @@ export type {
 } from './domain/index.js';
 
 /** Ports for backend adapters (BACK-SVC-003, BACK-SVC-020…032). */
-export type { PilotPort, IndustryPort } from './ports/index.js';
+export {
+  PILOT_PORT,
+  INDUSTRY_PORT,
+  type PilotPort,
+  type IndustryPort,
+} from './ports/index.js';
+
+/**
+ * Exception machinery for backends (catalog *entries* stay app-local).
+ * Named catalogs (e.g. back ExceptionCatalog) compose {@link catalogEntry}.
+ */
+export {
+  NeocomBackendError,
+  type NeocomBackendErrorEntry,
+  ExceptionCatalogEntry,
+  catalogEntry,
+  ExceptionPayloadBuilder,
+  exceptionPayload,
+  isExceptionPayload,
+  type ExceptionPayload,
+} from './exceptions/index.js';
