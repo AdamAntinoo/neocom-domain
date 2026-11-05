@@ -72,7 +72,16 @@ Local package version should match npm (`0.29.2` at last alignment). Local `.git
 
 | Secret | Required for |
 | --- | --- |
-| **`NPM_TOKEN`** | `npm publish` |
+| **`NPM_TOKEN`** | `npm publish` (`NODE_AUTH_TOKEN` in Actions) |
 | **`NEOCOM_REPO_TOKEN`** | After publish: push dependency bumps to `neocom-front` / `neocom-back` `develop` (PAT with `contents:write` on those repos) |
 
-Set both on `AdamAntinoo/neocom-domain`.
+Set both under **Settings → Secrets and variables → Actions** on `AdamAntinoo/neocom-domain`.
+
+**`NPM_TOKEN` setup** (fixes `ENEEDAUTH` / “need auth” on publish):
+
+1. On [npmjs.com](https://www.npmjs.com/) → **Access Tokens** → generate an **Automation** token (or a granular token with **Read and write** on package `neocom-domain`).
+2. Repo → **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name exactly **`NPM_TOKEN`**, paste the token value, save.
+4. Re-run the failed **npm publish** workflow (or push another commit).
+
+The workflow already passes `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` with `registry-url: https://registry.npmjs.org`. An empty or missing secret is what produces `ENEEDAUTH`.
