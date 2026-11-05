@@ -1,6 +1,6 @@
 {
   "name": "neocom-domain",
-  "version": "0.29.3",
+  "version": "0.29.2",
   "description": "neocomusiness-domain TypeScript classes",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,8 +12,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "clean": "rm -rf ./dist",
     "build": "npm run clean & tsc -p tsconfig.json",
@@ -24,8 +28,11 @@
     "version:bump:patch": "npm version patch --no-git-tag-version",
     "version:bump:minor": "npm version minor --no-git-tag-version",
     "version:bump:major": "npm version major --no-git-tag-version",
+    "version:ensure-publishable": "node scripts/ensure-publishable-version.mjs",
     "version:tag": "node scripts/version-tag-from-package.mjs",
-    "publish:lib": "npm run version:sync && npm run version:bump:minor && npm run test && npm run build && npm publish && npm run version:sync && npm run version:tag"
+    "changelog:from-commit": "node scripts/changelog-from-commit.mjs",
+    "publish:ci": "npm run version:ensure-publishable && npm run test && npm run build && npm publish --access public && npm run version:sync && npm run version:tag",
+    "publish:lib": "npm run publish:ci"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

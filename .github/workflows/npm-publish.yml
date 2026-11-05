@@ -1,0 +1,201 @@
+# All neocom-domain version bumps + npm publish run here (GitHub Actions).
+# npm / package.json are the source of truth — not GitVersion, not local githooks.
+#
+# - Normal push → `npm version patch`, then publish
+# - Commit already bumped by version-on-pr-open (minor/major) → publish as-is
+# - Commit message is prepended to CHANGELOG.md (shipped in the npm package)
+# - After publish → bump neocom-front / neocom-back to the new version + npm install
+# - `[skip npm publish]` → no-op (used when committing package.json / CHANGELOG after publish)
+name: npm publish
+
+on:
+  push:
+    branches:
+      - '**'
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  version-and-publish:
+    if: ${{ !contains(github.event.head_commit.message, '[skip npm publish]') }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # `.nvmrc` holds the local nvm alias `neocom` (not a semver); pin CI to the same Node.
+          node-version: '24.21.0'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install
+        run: npm ci
+
+      - name: Patch bump on normal pushes
+        id: bump
+        run: |
+          MSG="${{ github.event.head_commit.message }}"
+          BEFORE="$(node -p "require('./package.json').version")"
+          # PR-open workflow already committed minor/major — do not patch again.
+          if echo "$MSG" | grep -qE 'ci\(version\): bump (minor|major)'; then
+            echo "PR version bump detected; skipping patch"
+            echo "did_patch=false" >> "$GITHUB_OUTPUT"
+            echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+            echo "after=$BEFORE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npm version patch --no-git-tag-version
+          AFTER="$(node -p "require('./package.json').version")"
+          echo "did_patch=true" >> "$GITHUB_OUTPUT"
+          echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+          echo "after=$AFTER" >> "$GITHUB_OUTPUT"
+          echo "Patched ${BEFORE} → ${AFTER}"
+
+      - name: Ensure version is free on npm
+        run: node scripts/ensure-publishable-version.mjs
+
+      - name: Record commit message in CHANGELOG
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: node scripts/changelog-from-commit.mjs
+
+      - name: Test and build
+        run: npm test && npm run build
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Record published version
+        id: version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Published neocom-domain@${VERSION}"
+
+      - name: Sync from npm and create git tag
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          npm run version:sync
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists"
+          else
+            {
+              echo "npm neocom-domain@${VERSION}"
+              echo
+              echo "$COMMIT_MESSAGE"
+            } | git tag -a "$TAG" -F -
+            echo "Created tag ${TAG}"
+          fi
+
+      - name: Commit package.json + CHANGELOG and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          CHANGED=false
+          if ! git diff --quiet -- package.json CHANGELOG.md; then
+            git add package.json CHANGELOG.md
+            git commit -m "ci(version): record npm publish $(node -p "require('./package.json').version") [skip npm publish]"
+            CHANGED=true
+          fi
+          if [[ "$CHANGED" == "true" ]]; then
+            git push
+          fi
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            git push origin "refs/tags/${TAG}" || true
+          fi
+
+  update-consumers:
+    needs: version-and-publish
+    if: ${{ needs.version-and-publish.outputs.version != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [neocom-front, neocom-back]
+    steps:
+      - name: Require cross-repo token
+        env:
+          NEOCOM_REPO_TOKEN: ${{ secrets.NEOCOM_REPO_TOKEN }}
+        run: |
+          if [[ -z "${NEOCOM_REPO_TOKEN}" ]]; then
+            echo "::error::Set repository secret NEOCOM_REPO_TOKEN (PAT with contents:write on neocom-front and neocom-back) so consumers can be bumped after publish."
+            exit 1
+          fi
+
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+        with:
+          repository: AdamAntinoo/${{ matrix.repo }}
+          ref: develop
+          token: ${{ secrets.NEOCOM_REPO_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Point package.json at published neocom-domain
+        env:
+          VERSION: ${{ needs.version-and-publish.outputs.version }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const version = process.env.VERSION;
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const sections = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
+          let found = false;
+          for (const section of sections) {
+            if (pkg[section] && Object.prototype.hasOwnProperty.call(pkg[section], 'neocom-domain')) {
+              console.log(section + '.neocom-domain: ' + pkg[section]['neocom-domain'] + ' → ' + version);
+              pkg[section]['neocom-domain'] = version;
+              found = true;
+            }
+          }
+          if (!found) {
+            pkg.dependencies = pkg.dependencies || {};
+            pkg.dependencies['neocom-domain'] = version;
+            console.log('dependencies.neocom-domain: (added) → ' + version);
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Install updated neocom-domain (refresh lockfile)
+        env:
+          VERSION: ${{ needs.version-and-publish.outputs.version }}
+        run: |
+          npm install "neocom-domain@${VERSION}" --save-exact
+          npm install
+
+      - name: Commit and push consumer bump
+        env:
+          VERSION: ${{ needs.version-and-publish.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --staged --quiet; then
+            echo "No consumer changes for ${{ matrix.repo }}@neocom-domain@${VERSION}"
+            exit 0
+          fi
+          git commit -m "chore(deps): bump neocom-domain to ${VERSION}"
+          git push origin HEAD:develop

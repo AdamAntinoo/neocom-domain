@@ -2,7 +2,7 @@
 /**
  * Align package.json to the latest npm publish when one exists.
  * Git tags follow npm after publish (see version-tag-from-package.mjs).
- * Do not drive package.json from GitVersion / GitHub.
+ * Do not drive package.json from GitVersion (removed from this repo).
  *
  * When the package is not on npm (or npm view fails), keep the local version —
  * internal file: consumers are not constrained by registry semver.

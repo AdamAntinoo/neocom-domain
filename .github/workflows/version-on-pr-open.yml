@@ -1,0 +1,61 @@
+# When a PR is opened: bump minor (base develop) or major (base main) with
+# `npm version`, commit on the PR head so the branch carries the new version.
+# The following push triggers npm-publish.yml.
+name: version on PR open
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+
+      - name: Bump version for PR base
+        id: bump
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          BEFORE="$(node -p "require('./package.json').version")"
+          if [[ "$BASE" == "main" ]]; then
+            npm version major --no-git-tag-version
+            KIND=major
+          elif [[ "$BASE" == "develop" ]]; then
+            npm version minor --no-git-tag-version
+            KIND=minor
+          else
+            echo "Base branch $BASE is not develop/main; skipping"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          AFTER="$(node -p "require('./package.json').version")"
+          echo "kind=$KIND" >> "$GITHUB_OUTPUT"
+          echo "before=$BEFORE" >> "$GITHUB_OUTPUT"
+          echo "after=$AFTER" >> "$GITHUB_OUTPUT"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push version bump
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "ci(version): bump ${{ steps.bump.outputs.kind }} for PR into ${{ github.event.pull_request.base.ref }} (${{ steps.bump.outputs.before }} → ${{ steps.bump.outputs.after }})"
+          git push origin "HEAD:${{ github.head_ref }}"

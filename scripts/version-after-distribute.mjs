@@ -1,14 +1,8 @@
 #!/usr/bin/env node
 /**
- * After a successful internal `distribute`, advance package.json.
- *
- * While the library is not published (or npm is unreachable): bump patch from the
- * local version — file: consumers do not constrain on registry semver.
- *
- * When npm has a published version: align to that publish, then bump patch so the
- * next internal (or publish) build is always above the registry.
- *
- * Never uses GitVersion. Git tags stay with version:tag after a real npm publish.
+ * After a successful local distribute (test + build), advance package.json with
+ * `npm version patch` semantics. Aligns to npm first when local is behind.
+ * Never uses GitVersion — npm / package.json are the source of truth.
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -26,51 +20,41 @@ function writePkg(pkg) {
   writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
-function bumpPatch(version) {
-  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
-  if (!m) {
-    throw new Error(`Expected X.Y.Z, got: ${version}`);
-  }
-  return `${m[1]}.${m[2]}.${Number(m[3]) + 1}`;
-}
-
-function latestNpmVersion() {
+function npmViewVersion() {
   try {
     const published = execSync('npm view neocom-domain version', {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
-    if (!/^\d+\.\d+\.\d+/.test(published)) {
-      return null;
-    }
-    return published;
+    return /^\d+\.\d+\.\d+/.test(published) ? published : null;
   } catch {
     return null;
   }
 }
 
-const pkg = readPkg();
-const previous = pkg.version;
-const published = latestNpmVersion();
-
-let base = previous;
-if (published) {
-  // Stay at least on the registry line before advancing for this distribute.
-  const [pMaj, pMin, pPat] = published.split('.').map(Number);
-  const [lMaj, lMin, lPat] = previous.split('.').map(Number);
-  const localBehind =
-    lMaj < pMaj ||
-    (lMaj === pMaj && lMin < pMin) ||
-    (lMaj === pMaj && lMin === pMin && lPat < pPat);
-  if (localBehind) {
-    base = published;
-    console.log(`Aligned to npm publish ${published} before distribute bump`);
+function cmpSemver(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i] - pb[i];
   }
-} else {
-  console.log('No npm publish found (or unreachable); bumping from local version');
+  return 0;
 }
 
-const next = bumpPatch(base);
-pkg.version = next;
-writePkg(pkg);
+const pkg = readPkg();
+const previous = pkg.version;
+const published = npmViewVersion();
+
+if (published && cmpSemver(previous, published) < 0) {
+  pkg.version = published;
+  writePkg(pkg);
+  console.log(`Aligned to npm ${published} before patch bump`);
+}
+
+execSync('npm version patch --no-git-tag-version', {
+  cwd: root,
+  stdio: 'inherit',
+});
+
+const next = readPkg().version;
 console.log(`version after distribute: ${previous} → ${next}`);

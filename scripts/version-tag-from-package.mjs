@@ -28,7 +28,12 @@ if (existing.includes(tag)) {
   process.exit(0);
 }
 
-execSync(`git tag -a "${tag}" -m "npm neocom-domain@${version}"`, {
+const commitMessage = (process.env.COMMIT_MESSAGE || '').trim();
+const tagMessage = commitMessage
+  ? `npm neocom-domain@${version}\n\n${commitMessage}`
+  : `npm neocom-domain@${version}`;
+
+execSync(`git tag -a "${tag}" -m ${JSON.stringify(tagMessage)}`, {
   cwd: root,
   stdio: 'inherit',
 });

@@ -1,25 +1,4 @@
 #!/usr/bin/env bash
-# After every commit: test, build, and advance package.json (distribute).
-set -euo pipefail
-
-if [[ "${SKIP_DOMAIN_DISTRIBUTE:-}" == "1" ]]; then
-  exit 0
-fi
-
-root="$(git rev-parse --show-toplevel)"
-cd "$root"
-
-echo "post-commit: npm run distribute"
-npm run distribute
-
-# Version bump leaves package.json dirty — fold it into a follow-up commit without re-entering.
-if git diff --quiet -- package.json; then
-  exit 0
-fi
-
-git add -- package.json
-SKIP_DOMAIN_DISTRIBUTE=1 git commit -m "$(cat <<'EOF'
-ci(version): bump after distribute
-
-EOF
-)"
+# Versioning and npm publish are GitHub Actions only (.github/workflows/).
+# Intentionally no-op so local commits do not bump or publish.
+exit 0
