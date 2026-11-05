@@ -9,7 +9,6 @@
 
 # Node modules and dependency files
 /node_modules/
-/package-lock.json
 /yarn.lock
 
 # Environment files
@@ -30,4 +29,3 @@ yarn-error.log*
 
 graphify-out/
 .DS_Store
-
